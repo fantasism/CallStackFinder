@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension
+         point="org.eclipse.ui.preferencePages">
+      <page
+            class="org.fantasism.eclipse.plugin.callstackfinder.preferences.CallStackFinderPreferencePage"
+            id="org.fantasism.eclipse.plugin.callstackfinder.preferences.FIndingCallerPreferencePage"
+            name="CallStackFinderの設定">
+      </page>
+   </extension>
+   <extension
+         point="org.eclipse.core.runtime.preferences">
+      <initializer
+            class="org.fantasism.eclipse.plugin.callstackfinder.preferences.PreferenceInitializer">
+      </initializer>
+   </extension>
+   <extension
+         point="org.eclipse.help.contexts">
+      <contexts
+            file="contexts.xml">
+      </contexts>
+   </extension>
+   <extension
+         point="org.eclipse.ui.views">
+      <view
+            allowMultiple="false"
+            category="org.fantasism.eclipse.plugin.callstackfinder.category"
+            class="org.fantasism.eclipse.plugin.callstackfinder.views.CallStackFinderView"
+            id="org.fantasism.eclipse.plugin.callstackfinder.views.ExecuteFindingCallerView"
+            name="Execute CallStackFinder View">
+      </view>
+      <category
+            id="org.fantasism.eclipse.plugin.callstackfinder.category"
+            name="CallStackFinder">
+      </category>
+   </extension>
+
+</plugin>
