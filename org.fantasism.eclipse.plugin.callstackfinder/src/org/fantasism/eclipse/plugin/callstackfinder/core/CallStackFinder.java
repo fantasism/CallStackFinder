@@ -22,6 +22,7 @@ package org.fantasism.eclipse.plugin.callstackfinder.core;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +36,7 @@ import org.eclipse.jdt.core.search.SearchEngine;
 import org.eclipse.jdt.core.search.SearchParticipant;
 import org.eclipse.jdt.core.search.SearchPattern;
 import org.eclipse.jface.operation.IRunnableWithProgress;
+import org.fantasism.eclipse.plugin.callstackfinder.Activator;
 
 /**
  * TODO クラスの概要
@@ -74,30 +76,37 @@ public class CallStackFinder implements IRunnableWithProgress {
      */
     @Override
     public void run(IProgressMonitor monitor) throws InvocationTargetException, InterruptedException {
-        monitor.beginTask("Finding Caller...", this.monitorTicks);
+        monitor.beginTask("CallStackFinder...", this.monitorTicks);
 
         try {
             CallStackResultWriter writer = new CallStackResultWriter(outputDirPath);
 
             BufferedReader br = null;
             try {
+                Activator.getConsoleStream().println("CLASS METHOD FINDER:[BEGIN]");
+
                 // キーワードに該当するクラスメソッドを検索する
                 List<ClassMethodSearchResult> infos = searchClassMethod(monitor);
+
+                Activator.getConsoleStream().println("CLASS METHOD FINDER:[END]");
 
                 // 該当したクラスメソッドの呼出階層を検索する
                 for (ClassMethodSearchResult classMethod : infos) {
                     try {
+                        Activator.getConsoleStream().println("CALL STACK FINDER:[BEGIN]" + classMethod);
                         CallStackRootNode rootNode = searchCallStackRoot(monitor, classMethod);
 
                         writer.write(rootNode);
+                        Activator.getConsoleStream().println("CALL STACK FINDER:[END]" + classMethod);
 
                     } catch (CoreException e) {
-                        e.printStackTrace();
+                        Activator.getConsoleStream().println("CALL STACK FINDER:[ERROR]" + classMethod);
+                        e.printStackTrace(new PrintStream(Activator.getConsoleStream()));
                     }
                 }
 
-            } catch (CoreException e) {
-                e.printStackTrace();
+            } catch (Exception e) {
+                e.printStackTrace(new PrintStream(Activator.getConsoleStream()));
 
             } finally {
                 if (br != null) {

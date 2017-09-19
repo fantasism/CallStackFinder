@@ -20,6 +20,10 @@
 package org.fantasism.eclipse.plugin.callstackfinder;
 
 import org.eclipse.jface.resource.ImageDescriptor;
+import org.eclipse.ui.console.ConsolePlugin;
+import org.eclipse.ui.console.IConsoleManager;
+import org.eclipse.ui.console.MessageConsole;
+import org.eclipse.ui.console.MessageConsoleStream;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
 
@@ -38,10 +42,21 @@ public class Activator extends AbstractUIPlugin {
 	// The shared instance
 	private static Activator plugin;
 
+	private static MessageConsoleStream consoleStream;
+
 	/**
 	 * The constructor
 	 */
 	public Activator() {
+        IConsoleManager consoleManager = ConsolePlugin.getDefault().getConsoleManager();
+        MessageConsole console = new MessageConsole("CallStackFinderのコンソール", null);
+        consoleManager.addConsoles(new MessageConsole[] { console });
+        consoleManager.showConsoleView(console);
+        consoleStream = console.newMessageStream();
+	}
+
+	public static MessageConsoleStream getConsoleStream() {
+	    return consoleStream;
 	}
 
 	/*

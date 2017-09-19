@@ -25,6 +25,7 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jdt.core.IMethod;
 import org.eclipse.jdt.core.search.SearchMatch;
 import org.eclipse.jdt.core.search.SearchRequestor;
+import org.fantasism.eclipse.plugin.callstackfinder.Activator;
 
 /**
  * TODO クラスの概要
@@ -44,8 +45,8 @@ public class ClassMethodSearchRequestor extends SearchRequestor {
     @Override
     public void acceptSearchMatch(SearchMatch match) throws CoreException {
         Object element = match.getElement();
-        if (element instanceof IMethod)
-        {
+        if (element instanceof IMethod) {
+            Activator.getConsoleStream().println("CLASS METHOD FINDER:[OK]" + element);
             IMethod method = (IMethod)element;
 
             ClassMethodSearchResult info = new ClassMethodSearchResult();
@@ -55,6 +56,9 @@ public class ClassMethodSearchRequestor extends SearchRequestor {
             info.setMethodName(method.getElementName());
 
             infos.add(info);
+
+        } else {
+            Activator.getConsoleStream().println("CLASS METHOD FINDER:[SKIP(NOT METHOD)]" + element);
         }
     }
 

@@ -85,4 +85,8 @@ public class ClassMethodSearchResult {
         this.methodName = methodName;
     }
 
+    public String toString() {
+        return this.packageName + "." + this.className + "#" + this.methodName;
+    }
+
 }

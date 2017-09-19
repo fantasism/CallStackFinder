@@ -19,11 +19,14 @@
 
 package org.fantasism.eclipse.plugin.callstackfinder.core;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.eclipse.core.runtime.CoreException;
-import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.IMethod;
 import org.eclipse.jdt.core.search.SearchMatch;
 import org.eclipse.jdt.core.search.SearchRequestor;
+import org.fantasism.eclipse.plugin.callstackfinder.Activator;
 
 /**
  * TODO クラスの概要
@@ -36,18 +39,28 @@ public class CallStackSearchRequestor extends SearchRequestor {
 
     private ICallStackNode node;
 
+    private Set<ICallStackNode> callStackSet;
+
     public CallStackSearchRequestor(ICallStackNode node) {
         this.node = node;
+        this.callStackSet = new HashSet<ICallStackNode>();
     }
 
     @Override
     public void acceptSearchMatch(SearchMatch match) throws CoreException {
         Object element = match.getElement();
-        if (element instanceof IMethod && element instanceof IJavaElement)
-        {
+
+        if (element instanceof IMethod) {
             CallStackChildNode childNode = new CallStackChildNode((IMethod) element);
 
-            node.getChildren().add(childNode);
+            if (callStackSet.contains(childNode)) {
+                Activator.getConsoleStream().println("CALL STACK FINDER:[SKIP(RECURSIVE)]" + element);
+            } else {
+                Activator.getConsoleStream().println("CALL STACK FINDER:[OK]" + element);
+                node.getChildren().add(childNode);
+            }
+        } else {
+            Activator.getConsoleStream().println("CALL STACK FINDER:[SKIP(NOT METHOD)]" + element);
         }
     }
 

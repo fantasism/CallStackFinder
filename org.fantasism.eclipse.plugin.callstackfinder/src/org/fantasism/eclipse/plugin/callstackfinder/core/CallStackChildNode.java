@@ -56,7 +56,10 @@ public class CallStackChildNode implements ICallStackNode {
     }
 
     public String toPattern() {
-        return "";
+        String packageName = method.getParent().getParent().getParent().getElementName();
+        String className = method.getParent().getElementName();
+        String methodName = method.getElementName();
+        return packageName + "." + className + "#" + methodName;
     }
 
 }
