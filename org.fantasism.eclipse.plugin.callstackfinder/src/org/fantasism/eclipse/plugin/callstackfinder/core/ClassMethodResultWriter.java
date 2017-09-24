@@ -25,8 +25,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-
-import org.eclipse.jdt.core.IMethod;
+import java.util.List;
 
 /**
  * TODO クラスの概要
@@ -35,31 +34,23 @@ import org.eclipse.jdt.core.IMethod;
  * </p>
  * @author Takahide Ohsuka, FANTASISM.
  */
-public class CallStackResultWriter {
+public class ClassMethodResultWriter {
 
     private String filePath;
     private BufferedWriter writer;
 
-    public CallStackResultWriter(String basePath) {
+    public ClassMethodResultWriter(String basePath) {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMDDhhmmss");
-        this.filePath = basePath + "\\CallStackList_" + sdf.format(new Date()) + ".tsv";
+        this.filePath = basePath + "\\ClassMethodList_" + sdf.format(new Date()) + ".tsv";
     }
 
-    public void write(CallStackRootNode rootNode) throws IOException {
-
-        String currentPath = rootNode.getPackageName() + "." + rootNode.getClassName() + "#" + rootNode.getMethodName();
+    public void write(List<ClassMethodSearchResult> searchResultList) throws IOException {
 
         try {
             writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(this.filePath, true), "UTF-8"));
 
-            if (rootNode.getChildlen().size() > 0) {
-
-                for (CallStackChildNode childNode : rootNode.getChildren()) {
-                    write(childNode, currentPath);
-                }
-
-            } else {
-                this.writer.write(currentPath + "\r\n");
+            for (ClassMethodSearchResult searchResult : searchResultList) {
+                this.writer.write(searchResult.toString() + "\r\n");
             }
 
         } finally {
@@ -70,25 +61,6 @@ public class CallStackResultWriter {
             }
             this.writer = null;
         }
-    }
-
-    private void write(CallStackChildNode node, String parentText) throws IOException {
-
-        String currentPath = parentText + "\t" + toClassPath(node.getMethod());
-        if (node.getChildren().size() > 0) {
-
-            for (CallStackChildNode childNode : node.getChildren()) {
-                write(childNode, currentPath);
-            }
-
-        } else {
-            this.writer.write(currentPath + "\r\n");
-        }
-
-    }
-
-    private String toClassPath(IMethod method) {
-        return method.getParent().getParent().getParent().getElementName() + "." + method.getParent().getElementName() + "#" + method.getElementName();
     }
 
     /**

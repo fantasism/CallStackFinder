@@ -22,7 +22,6 @@ package org.fantasism.eclipse.plugin.callstackfinder.views;
 import java.awt.Desktop;
 import java.io.File;
 import java.io.IOException;
-import java.util.Date;
 
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.IToolBarManager;
@@ -45,6 +44,7 @@ import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
 import org.fantasism.eclipse.plugin.callstackfinder.Activator;
 import org.fantasism.eclipse.plugin.callstackfinder.core.CallStackFinder;
+import org.fantasism.eclipse.plugin.callstackfinder.core.ClassMethodFinder;
 import org.fantasism.eclipse.plugin.callstackfinder.preferences.PreferenceConstants;
 
 /**
@@ -60,8 +60,9 @@ public class CallStackFinderView extends ViewPart {
     private final FormToolkit toolkit = new FormToolkit(Display.getCurrent());
     private Text txtSearchKeyword;
     private Text txtOutputDir;
-    private Text txtOutputFile;
-    private Text txtExecResult;
+    private Text txtOutputClassMethodFile;
+    private Text txtInputClassMethodFile;
+    private Text txtOutputCallStackFile;
 
     public CallStackFinderView() {
     }
@@ -75,17 +76,6 @@ public class CallStackFinderView extends ViewPart {
         Composite container = toolkit.createComposite(parent, SWT.NONE);
         toolkit.paintBordersFor(container);
         container.setLayout(new GridLayout(3, false));
-        {
-            Label lblSearchKeyword = toolkit.createLabel(container, "キーワード", SWT.NONE);
-            lblSearchKeyword.setToolTipText("クラス・メソッドを表すキーワードを指定してください。\r\n例）org.fantasism.*.*Dao.count*");
-            lblSearchKeyword.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-        }
-        {
-            txtSearchKeyword = toolkit.createText(container, "New Text", SWT.NONE);
-            txtSearchKeyword.setText("");
-            txtSearchKeyword.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
-        }
-        new Label(container, SWT.NONE);
         {
             Label lblOutputDir = toolkit.createLabel(container, "出力先ディレクトリ", SWT.NONE);
             lblOutputDir.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
@@ -116,11 +106,29 @@ public class CallStackFinderView extends ViewPart {
         new Label(container, SWT.NONE);
         new Label(container, SWT.NONE);
         {
-            Button btnExecute = toolkit.createButton(container, "実行", SWT.NONE);
+            Label label = new Label(container, SWT.SEPARATOR | SWT.HORIZONTAL);
+            label.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 3, 1));
+            toolkit.adapt(label, true, true);
+        }
+        new Label(container, SWT.NONE);
+        new Label(container, SWT.NONE);
+        new Label(container, SWT.NONE);
+        {
+            Label lblSearchKeyword = toolkit.createLabel(container, "キーワード", SWT.NONE);
+            lblSearchKeyword.setToolTipText("クラス・メソッドを表すキーワードを指定してください。\r\n例）org.fantasism.*.*Dao.count*");
+            lblSearchKeyword.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
+        }
+        {
+            txtSearchKeyword = toolkit.createText(container, "New Text", SWT.NONE);
+            txtSearchKeyword.setText("");
+            txtSearchKeyword.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
+        }
+        new Label(container, SWT.NONE);
+        {
+            Button btnExecute = toolkit.createButton(container, "クラスメソッド抽出", SWT.NONE);
             btnExecute.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseUp(MouseEvent e) {
-                    txtExecResult.setText(new Date() + " 実行を開始しました。\r\n");
 
                     String outputFilePath = "";
 
@@ -135,65 +143,140 @@ public class CallStackFinderView extends ViewPart {
                         IWorkbench workbench = PlatformUI.getWorkbench();
                         IWorkbenchWindow window = workbench.getActiveWorkbenchWindow();
 
-                        CallStackFinder searcher = new CallStackFinder(txtSearchKeyword.getText(), txtOutputDir.getText());
+                        ClassMethodFinder searcher = new ClassMethodFinder(txtSearchKeyword.getText(), txtOutputDir.getText());
                         window.run(true, true, searcher);
 
                         outputFilePath = searcher.getOutputFilePath();
 
-                        txtExecResult.setText(txtExecResult.getText() + new Date() + " 実行が完了しました。\r\n");
-
-                    } catch (InterruptedException e1) {
-                        txtExecResult.setText(txtExecResult.getText() + new Date() + " 実行をキャンセルしました。\r\n");
+                    } catch (RuntimeException e1) {
+                        throw e1;
 
                     } catch (Exception e1) {
-                        txtExecResult.setText(txtExecResult.getText() + new Date() + " 実行中に予期せぬエラーが発生し、処理を中断しました。\r\n");
-                        e1.printStackTrace();
+                        throw new RuntimeException(e1);
 
                     } finally {
-                        txtOutputFile.setText(outputFilePath);
+                        txtOutputClassMethodFile.setText(outputFilePath);
                     }
+
                 }
             });
             btnExecute.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 3, 1));
         }
-        new Label(container, SWT.NONE);
-        new Label(container, SWT.NONE);
-        new Label(container, SWT.NONE);
         {
-            Label lblOutputFile = toolkit.createLabel(container, "出力ファイル", SWT.NONE);
-            lblOutputFile.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
+            Label lblOutputClassMethodFile = toolkit.createLabel(container, "出力ファイル", SWT.NONE);
+            lblOutputClassMethodFile.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
         }
         {
-            txtOutputFile = toolkit.createText(container, "New Text", SWT.NONE);
-            txtOutputFile.setBackground(SWTResourceManager.getColor(SWT.COLOR_WIDGET_LIGHT_SHADOW));
-            txtOutputFile.setText("");
-            txtOutputFile.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
+            txtOutputClassMethodFile = toolkit.createText(container, "New Text", SWT.READ_ONLY);
+            txtOutputClassMethodFile.setEditable(true);
+            txtOutputClassMethodFile.setBackground(SWTResourceManager.getColor(SWT.COLOR_WIDGET_LIGHT_SHADOW));
+            txtOutputClassMethodFile.setText("");
+            txtOutputClassMethodFile.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
         }
         {
-            Button btnOpenOutputFile = toolkit.createButton(container, "開く", SWT.NONE);
-            btnOpenOutputFile.addMouseListener(new MouseAdapter() {
+            Button btnOpenOutputClassMethodFile = toolkit.createButton(container, "開く", SWT.NONE);
+            btnOpenOutputClassMethodFile.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseUp(MouseEvent e) {
                     try {
-                        Desktop.getDesktop().open(new File(txtOutputFile.getText()));
+                        Desktop.getDesktop().open(new File(txtOutputClassMethodFile.getText()));
                     } catch (IOException e1) {
                         // TODO 自動生成された catch ブロック
                         e1.printStackTrace();
                     }
                 }
             });
-            btnOpenOutputFile.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
+            btnOpenOutputClassMethodFile.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
+        }
+        new Label(container, SWT.NONE);
+        new Label(container, SWT.NONE);
+        new Label(container, SWT.NONE);
+        {
+            Label label = new Label(container, SWT.SEPARATOR | SWT.HORIZONTAL);
+            label.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 3, 1));
+            toolkit.adapt(label, true, true);
+        }
+        new Label(container, SWT.NONE);
+        new Label(container, SWT.NONE);
+        new Label(container, SWT.NONE);
+        {
+            Label lblInputClassMethodFile = toolkit.createLabel(container, "クラスメソッドファイル", SWT.NONE);
+            lblInputClassMethodFile.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
         }
         {
-            Label lblExecResult = toolkit.createLabel(container, "実行結果", SWT.NONE);
-            lblExecResult.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
+            txtInputClassMethodFile = toolkit.createText(container, "New Text", SWT.NONE);
+            txtInputClassMethodFile.setText("");
+            txtInputClassMethodFile.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
+        }
+        new Label(container, SWT.NONE);
+        {
+            Button btnNewButton = toolkit.createButton(container, "呼出階層抽出", SWT.NONE);
+            btnNewButton.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseUp(MouseEvent e) {
+                    String outputFilePath = "";
+
+                    if ((new File(txtOutputDir.getText())).isDirectory()) {
+                        // 処理なし
+                    } else {
+                        // TODO エラー
+                        return;
+                    }
+
+                    if ((new File(txtInputClassMethodFile.getText())).isFile()) {
+                        // 処理なし
+                    } else {
+                        // TODO エラー
+                        return;
+                    }
+
+                    try {
+                        IWorkbench workbench = PlatformUI.getWorkbench();
+                        IWorkbenchWindow window = workbench.getActiveWorkbenchWindow();
+
+                        CallStackFinder searcher = new CallStackFinder(txtInputClassMethodFile.getText(), txtOutputDir.getText());
+                        window.run(true, true, searcher);
+
+                        outputFilePath = searcher.getOutputFilePath();
+
+                    } catch (RuntimeException e1) {
+                        throw e1;
+
+                    } catch (Exception e1) {
+                        throw new RuntimeException(e1);
+
+                    } finally {
+                        txtOutputCallStackFile.setText(outputFilePath);
+                    }
+
+                }
+            });
+            btnNewButton.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false, 3, 1));
         }
         {
-            txtExecResult = toolkit.createText(container, "New Text", SWT.MULTI);
-            txtExecResult.setText("");
-            txtExecResult.setBackground(SWTResourceManager.getColor(SWT.COLOR_WIDGET_LIGHT_SHADOW));
-            txtExecResult.setEditable(false);
-            txtExecResult.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 2, 1));
+            Label lblNewLabel_1 = toolkit.createLabel(container, "出力ファイル", SWT.NONE);
+            lblNewLabel_1.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
+        }
+        {
+            txtOutputCallStackFile = toolkit.createText(container, "New Text", SWT.READ_ONLY);
+            txtOutputCallStackFile.setBackground(SWTResourceManager.getColor(SWT.COLOR_WIDGET_LIGHT_SHADOW));
+            txtOutputCallStackFile.setEditable(true);
+            txtOutputCallStackFile.setText("");
+            txtOutputCallStackFile.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
+        }
+        {
+            Button btnOpenOutputCallStackFile = toolkit.createButton(container, "開く", SWT.NONE);
+            btnOpenOutputCallStackFile.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseUp(MouseEvent e) {
+                    try {
+                        Desktop.getDesktop().open(new File(txtOutputCallStackFile.getText()));
+                    } catch (IOException e1) {
+                        // TODO 自動生成された catch ブロック
+                        e1.printStackTrace();
+                    }
+                }
+            });
         }
 
         createActions();

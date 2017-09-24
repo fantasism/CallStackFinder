@@ -20,14 +20,12 @@
 package org.fantasism.eclipse.plugin.callstackfinder.core;
 
 import java.io.BufferedReader;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -47,13 +45,13 @@ import org.fantasism.eclipse.plugin.callstackfinder.Activator;
  * </p>
  * @author Takahide Ohsuka, FANTASISM.
  */
-public class CallStackFinder implements IRunnableWithProgress {
+public class CopyOfCallStackFinder implements IRunnableWithProgress {
 
     public static final int DEFAULT_MONITOR_TICKS = 100;
 
-    private String inputFilePath;
     private String outputFilePath;
 
+    private String searchKeyword;
     private String outputDirPath;
 
     private IJavaSearchScope scope;
@@ -61,8 +59,8 @@ public class CallStackFinder implements IRunnableWithProgress {
     private SearchParticipant[] participants;
     private int monitorTicks;
 
-    public CallStackFinder(String inputFilePath, String outputDirPath) {
-        this.inputFilePath = inputFilePath;
+    public CopyOfCallStackFinder(String searchKeyword, String outputDirPath) {
+        this.searchKeyword = searchKeyword;
         this.outputDirPath = outputDirPath;
         this.outputFilePath = "";
 
@@ -78,26 +76,22 @@ public class CallStackFinder implements IRunnableWithProgress {
      */
     @Override
     public void run(IProgressMonitor monitor) throws InvocationTargetException, InterruptedException {
-        monitor.beginTask("FINDING CALL STACK...", this.monitorTicks);
+        monitor.beginTask("CallStackFinder...", this.monitorTicks);
 
         try {
             CallStackResultWriter writer = new CallStackResultWriter(outputDirPath);
 
             BufferedReader br = null;
             try {
-                br = new BufferedReader(new InputStreamReader(new FileInputStream(inputFilePath)));
+                Activator.getConsoleStream().println("CLASS METHOD FINDER:[BEGIN]");
 
-                Pattern classMethodPattern = Pattern.compile("^(.+)\\.([^\\.]+)#(.+)$");
+                // キーワードに該当するクラスメソッドを検索する
+                List<ClassMethodSearchResult> infos = searchClassMethod(monitor);
 
-                for (String record = br.readLine(); record != null; record = br.readLine()) {
-                    ClassMethodSearchResult classMethod = new ClassMethodSearchResult();
+                Activator.getConsoleStream().println("CLASS METHOD FINDER:[END]");
 
-                    Matcher matcher = classMethodPattern.matcher(record);
-
-                    classMethod.setPackageName(matcher.replaceAll("$1"));
-                    classMethod.setClassName(matcher.replaceAll("$2"));
-                    classMethod.setMethodName(matcher.replaceAll("$3"));
-
+                // 該当したクラスメソッドの呼出階層を検索する
+                for (ClassMethodSearchResult classMethod : infos) {
                     try {
                         Activator.getConsoleStream().println("CALL STACK FINDER:[BEGIN]" + classMethod);
                         CallStackRootNode rootNode = searchCallStackRoot(monitor, classMethod);
@@ -133,6 +127,27 @@ public class CallStackFinder implements IRunnableWithProgress {
         } finally {
             monitor.done();
         }
+    }
+
+    private List<ClassMethodSearchResult> searchClassMethod(IProgressMonitor monitor) throws InvocationTargetException, InterruptedException, CoreException {
+
+        List<ClassMethodSearchResult> infos = new ArrayList<ClassMethodSearchResult>();
+
+        SearchPattern pattern = SearchPattern.createPattern(this.searchKeyword, IJavaSearchConstants.METHOD,
+                IJavaSearchConstants.DECLARATIONS, SearchPattern.R_PATTERN_MATCH|SearchPattern.R_CASE_SENSITIVE );
+
+        IProgressMonitor subMonitor = new SubProgressMonitor(monitor, this.monitorTicks);
+        try {
+            ClassMethodSearchRequestor requestor = new ClassMethodSearchRequestor(infos);
+
+            engine.search(pattern, this.participants, this.scope, requestor, subMonitor);
+
+        } finally {
+            subMonitor.done();
+        }
+
+        return infos;
+
     }
 
     private CallStackRootNode searchCallStackRoot(IProgressMonitor monitor, ClassMethodSearchResult classMethos) throws InvocationTargetException, InterruptedException, CoreException {
